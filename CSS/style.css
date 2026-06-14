@@ -32,19 +32,3 @@ button{
     border: none;
     cursor: pointer;
 }
-#municipio {
-    padding: 10px;
-    width: 200px;
-}
-
-#ufs {
-    width: 180px;
-}
-
-button {
-    padding: 10px 20px;
-    background-color: #1e66d0;
-    color: white;
-    border: none;
-    cursor: pointer;
-}
