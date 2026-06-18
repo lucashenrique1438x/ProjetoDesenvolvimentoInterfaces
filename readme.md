@@ -23,7 +23,7 @@ Para rodar a aplicação, você precisará iniciar o **Servidor Proxy (C#)** e o
 * **.NET SDK 6.0+** ([Download](https://dotnet.microsoft.com/download))
 
 ### Passo 1: Iniciar o Proxy (C#)
-1. Abra o terminal na pasta do backend (`ProxyDataSUS`).
+1. Abra o terminal na pasta do backend.
 2. Execute o comando:
 ```bash
    dotnet run
@@ -34,7 +34,7 @@ Para rodar a aplicação, você precisará iniciar o **Servidor Proxy (C#)** e o
 
 ### Passo 2: Iniciar o Frontend (Python)
 
-1. Abra um **novo terminal** na pasta raiz do projeto (onde está o `index.html`).
+1. Abra um **novo terminal** na pasta do frontend.
 2. Execute o comando:
 
 ```bash

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Localizador de Saúde e Medicamentos</title>
+
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <style>
+        /* Estilo básico para garantir que o mapa apareça */
+        #map {
+            height: 500px;
+            width: 100%;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; font-family: sans-serif; }
+        .busca { display: flex; gap: 10px; margin-bottom: 20px; }
+        input, select, button { padding: 10px; font-size: 16px; }
+        input { flex: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Localizador de Saúde e Medicamentos (DataSUS)</h1>
+        <div class="busca"> 
+            <input type="text" id="municipio" placeholder="Digite o município">
+            <select name="uf" id="ufs">
+                <option value="">Selecione a UF</option>
+                <option value="AC">Acre</option>
+                <option value="AL">Alagoas</option>
+                <option value="AP">Amapá</option>
+                <option value="AM">Amazonas</option>
+                <option value="BA">Bahia</option>
+                <option value="CE">Ceará</option>
+                <option value="DF">Distrito Federal</option>
+                <option value="ES">Espírito Santo</option>
+                <option value="GO">Goiás</option>
+                <option value="MA">Maranhão</option>
+                <option value="MT">Mato Grosso</option>
+                <option value="MS">Mato Grosso do Sul</option>
+                <option value="MG">Minas Gerais</option>
+                <option value="PA">Pará</option>
+                <option value="PB">Paraíba</option>
+                <option value="PR">Paraná</option>
+                <option value="PE">Pernambuco</option>
+                <option value="PI">Piauí</option>
+                <option value="RJ">Rio de Janeiro</option>
+                <option value="RN">Rio Grande do Norte</option>
+                <option value="RS">Rio Grande do Sul</option>
+                <option value="RO">Rondônia</option>
+                <option value="RR">Roraima</option>
+                <option value="SC">Santa Catarina</option>
+                <option value="SP">São Paulo</option>
+                <option value="SE">Sergipe</option>
+                <option value="TO">Tocantins</option>
+            </select>
+            <button onclick="Localizar()">Pesquisar</button>
+        </div>
+
+        <div id="map"></div>
+    </div>
+     
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="assets/js/script.js"></script>
+</body>
+</html>
