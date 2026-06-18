@@ -18,25 +18,27 @@ async function Localizar() {
     try {
         markersGroup.clearLayers();
 
-        const urlMunicipio = `https://apidadosabertos.saude.gov.br/macrorregiao-e-regiao-de-saude/municipio?municipio=${encodeURIComponent(municipioInput)}&sigla_uf=${ufInput}&limit=1&offset=0`;
+        // CHAMADA MODIFICADA: Agora aponta para o seu proxy C#
+        const urlMunicipio = `http://localhost:5000/api/municipio?municipio=${encodeURIComponent(municipioInput)}&uf=${ufInput}`;
         const resMunicipio = await fetch(urlMunicipio);
         const dataMunicipio = await resMunicipio.json();
 
         const listaMunicipios = dataMunicipio.macrorregiao_regiao_saude_municipios;
         if (!listaMunicipios || listaMunicipios.length === 0) {
-            alert("Município não encontrado. Verifique a grafia e a UF.");
+            alert("Município não encontrado.");
             return;
         }
 
         const codigoMunicipio = listaMunicipios[0].codigo_municipio;
 
-        const urlEstabelecimentos = `https://apidadosabertos.saude.gov.br/cnes/estabelecimentos?codigo_municipio=${codigoMunicipio}&limit=100&offset=0`;
+        // CHAMADA MODIFICADA: Agora aponta para o seu proxy C#
+        const urlEstabelecimentos = `http://localhost:5000/api/estabelecimentos?codigo_municipio=${codigoMunicipio}`;
         const resEstabelecimentos = await fetch(urlEstabelecimentos);
         const dataEstabelecimentos = await resEstabelecimentos.json();
 
         const estabelecimentos = dataEstabelecimentos.estabelecimentos;
         if (!estabelecimentos || estabelecimentos.length === 0) {
-            alert("Nenhum estabelecimento de saúde encontrado para este município.");
+            alert("Nenhum estabelecimento encontrado.");
             return;
         }
 
@@ -44,7 +46,7 @@ async function Localizar() {
 
     } catch (error) {
         console.error("Erro na requisição:", error);
-        alert("Ocorreu um erro ao buscar os dados da API do DataSUS.");
+        alert("Erro ao buscar dados através do servidor proxy.");
     }
 }
 
