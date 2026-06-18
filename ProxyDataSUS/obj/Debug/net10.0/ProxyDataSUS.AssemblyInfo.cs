@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ProxyDataSUS")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2924d73f8059fa76e87571fd0e64370592f77dd2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+223d4aa004073dc69a275518d1feb4d4623bfbb8")]
 [assembly: System.Reflection.AssemblyProductAttribute("ProxyDataSUS")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ProxyDataSUS")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

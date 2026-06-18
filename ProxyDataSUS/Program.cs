@@ -1,25 +1,35 @@
 using System.Net.Http;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configura a política de CORS para permitir que o seu frontend acesse o servidor C#
+// Configuração das políticas de segurança CORS (Cross-Origin Resource Sharing)
+// link explicando o CORS: https://learn.microsoft.com/pt-br/aspnet/core/security/cors?view=aspnetcore-10.0
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+                      policy =>
+                      {
+                          // Definição das origens permitidas, cabeçalhos e métodos HTTP aceitos
+                          policy.WithOrigins("http://localhost:8080",
+                                             "http://127.0.0.1:8080")
+                                .AllowAnyHeader()
+                                .WithMethods("GET");
+                      });
 });
 
+// Registro do serviço IHttpClientFactory para gerenciamento de requisições HTTP externas
 builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
-app.UseCors();
+// Aplicação do middleware de CORS baseado na política registrada
+app.UseCors(MyAllowSpecificOrigins);
 
-// Endpoint Proxy 1: Buscar Código do Município
+// Endpoint proxy para resolução do código IBGE/DataSUS do município solicitado
 app.MapGet("/api/municipio", async (string municipio, string uf, IHttpClientFactory clientFactory) =>
 {
     var client = clientFactory.CreateClient();
@@ -31,16 +41,76 @@ app.MapGet("/api/municipio", async (string municipio, string uf, IHttpClientFact
     return Results.Content(content, "application/json");
 });
 
-// Endpoint Proxy 2: Buscar Estabelecimentos
+// Endpoint proxy com paginação sequencial integrada para consolidação de estabelecimentos de saúde
 app.MapGet("/api/estabelecimentos", async (string codigo_municipio, IHttpClientFactory clientFactory) =>
 {
     var client = clientFactory.CreateClient();
-    var url = $"https://apidadosabertos.saude.gov.br/cnes/estabelecimentos?codigo_municipio={codigo_municipio}&limit=100&offset=0";
     
-    var response = await client.GetAsync(url);
-    var content = await response.Content.ReadAsStringAsync();
+    // Parâmetros de controle para limitação e paginação da API externa
+    const int limitePorPagina = 20; 
+    const int metaTotalEstabelecimentos = 100; 
     
-    return Results.Content(content, "application/json");
+    int offsetAtual = 0;
+    var listaConsolidada = new JsonArray();
+    bool possuiMaisRegistros = true;
+
+    // Laço de repetição para requisições sucessivas baseado no limite e offset da API de origem
+    while (possuiMaisRegistros && listaConsolidada.Count < metaTotalEstabelecimentos)
+    {
+        var url = $"https://apidadosabertos.saude.gov.br/cnes/estabelecimentos?codigo_municipio={codigo_municipio}&limit={limitePorPagina}&offset={offsetAtual}";
+        
+        var response = await client.GetAsync(url);
+        if (!response.IsSuccessStatusCode) break;
+
+        var content = await response.Content.ReadAsStringAsync();
+        
+        using (JsonDocument doc = JsonDocument.Parse(content))
+        {
+            // Validação estrutural do nó de dados esperado no JSON de resposta
+            if (doc.RootElement.TryGetProperty("estabelecimentos", out JsonElement estabelecimentosProp) && 
+                estabelecimentosProp.ValueKind == JsonValueKind.Array)
+            {
+                int quantidadeNaPagina = 0;
+
+                foreach (var est in estabelecimentosProp.EnumerateArray())
+                {
+                    // Interrupção do processamento caso o teto máximo de registros seja atingido
+                    if (listaConsolidada.Count >= metaTotalEstabelecimentos) break;
+
+                    // Conversão de JsonElement estrutural para JsonNode mutável
+                    var nóNode = JsonNode.Parse(est.GetRawText());
+                    if (nóNode != null)
+                    {
+                        listaConsolidada.Add(nóNode);
+                        quantidadeNaPagina++;
+                    }
+                }
+
+                // Critério de parada por exaustão de registros na API de origem
+                if (quantidadeNaPagina < limitePorPagina)
+                {
+                    possuiMaisRegistros = false;
+                }
+            }
+            else
+            {
+                possuiMaisRegistros = false;
+                break;
+            }
+        }
+
+        // Incremento do offset com base no multiplicador de registros por página
+        offsetAtual += limitePorPagina;
+    }
+
+    // Estruturação do payload de saída para manutenção de compatibilidade com o contrato do frontend
+    var resultadoFinal = new JsonObject
+    {
+        ["estabelecimentos"] = listaConsolidada
+    };
+
+    return Results.Json(resultadoFinal);
 });
 
+// Inicialização do host web e escuta na porta de rede configurada
 app.Run("http://localhost:5000");
