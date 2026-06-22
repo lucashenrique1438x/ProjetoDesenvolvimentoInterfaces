@@ -1,7 +1,12 @@
 body {
     font-family: Arial, Helvetica, sans-serif;
-    background: #f4f4f4;
     margin: 0;
+    min-height: 0vh;
+    background: linear-gradient(150deg, rgb(32, 124, 199), rgb(29, 92, 209));
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    margin: 100;
 }
 .container{
     width: 90%;
@@ -10,14 +15,18 @@ body {
 }
 
 h1 {
-    text-align: center;
-    color: blue;
+    top: 50%;
+    font-size: 3rem;
+    font-weight: 700;
+    color: rgb(255, 255, 255);
+    margin-left: 100px;
 }
 
 .busca {
     display: flex;
     gap: 10px;
     margin-top: 20px;
+    
 }
 
 input{
@@ -31,4 +40,24 @@ button{
     color: white;
     border: none;
     cursor: pointer;
+}
+#dna {
+    position: absolute;
+    width: 48%;
+    top: 0%;
+    left: 0%;
+    z-index: -1;
+
+}
+
+#remedio {
+    position: absolute;
+    width: 40%;
+    top: -10%;
+    left: 70%;
+    z-index: -1;
+}
+
+body::-webkit-scrollbar{
+    display: none;
 }
