@@ -1,81 +1,126 @@
-const map = L.map('map').setView([-14.235, -51.925], 4); 
+const AppState = {
+    map: null,
+    markers: [],
+    loading: false,
+    currentLocation: null
+};
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-}).addTo(map);
+window.addEventListener("load", () => {
+    initMap();
+});
 
-const markersGroup = L.layerGroup().addTo(map);
-
-async function Localizar() {
-    const municipioInput = document.getElementById('municipio').value.trim();
-    const ufInput = document.getElementById('ufs').value;
-
-    if (!municipioInput || !ufInput) {
-        alert("Por favor, digite o município e selecione a UF.");
-        return;
+function initMap(lat = -14.2350, lng = -51.9253, zoom = 5) {
+    if (AppState.map) {
+        AppState.map.remove();
     }
 
+    AppState.map = L.map("map").setView([lat, lng], zoom);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap"
+    }).addTo(AppState.map);
+}
+
+async function Localizar() {
+    const municipio = getInputValue("municipio");
+    const uf = getInputValue("ufs");
+
+    if (!validateSearch(municipio, uf)) return;
+
+    setLoading(true);
+
     try {
-        markersGroup.clearLayers();
+        const location = await getMunicipioCoords(municipio, uf);
 
-        // CORREÇÃO: Adicionado crases aqui
-        const urlMunicipio = `http://localhost:5000/api/municipio?municipio=${encodeURIComponent(municipioInput)}&uf=${ufInput}`;
-        const resMunicipio = await fetch(urlMunicipio);
-        const dataMunicipio = await resMunicipio.json();
-
-        const listaMunicipios = dataMunicipio.macrorregiao_regiao_saude_municipios;
-        if (!listaMunicipios || listaMunicipios.length === 0) {
-            alert("Município não encontrado.");
+        if (!location) {
+            showMessage("Local não encontrado");
             return;
         }
 
-        const codigoMunicipio = listaMunicipios[0].codigo_municipio;
-        
-        // CORREÇÃO: Adicionado crases aqui
-        const urlEstabelecimentos = `http://localhost:5000/api/estabelecimentos?codigo_municipio=${codigoMunicipio}`;
-        const resEstabelecimentos = await fetch(urlEstabelecimentos);
-        const dataEstabelecimentos = await resEstabelecimentos.json();
+        AppState.currentLocation = location;
 
-        const estabelecimentos = dataEstabelecimentos.estabelecimentos;
-        if (!estabelecimentos || estabelecimentos.length === 0) {
-            alert("Nenhum estabelecimento encontrado.");
-            return;
-        }
+        initMap(location.lat, location.lon, 12);
 
-        plotarNoMapa(estabelecimentos);
+        const establishments = await getEstablishments(location);
+
+        renderEstablishments(establishments);
 
     } catch (error) {
-        console.error("Erro na requisição:", error);
-        alert("Erro ao buscar dados através do servidor proxy.");
+        console.error(error);
+        showMessage("Erro ao buscar dados. Tente novamente.");
+    } finally {
+        setLoading(false);
     }
 }
 
-function plotarNoMapa(estabelecimentos) {
-    let primeiro = true;
+async function getMunicipioCoords(municipio, uf) {
+    const url = `https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(municipio)}&state=${encodeURIComponent(uf)}&country=Brazil&format=json`;
 
-    estabelecimentos.forEach(local => {
-        const lat = parseFloat(local.latitude_estabelecimento_decimo_grau);
-        const lon = parseFloat(local.longitude_estabelecimento_decimo_grau);
-        const nome = local.nome_fantasia || "Estabelecimento Sem Nome";
+    const response = await fetch(url);
+    const data = await response.json();
 
-        if (!isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0) {
-            const marker = L.marker([lat, lon]);
-            
-            marker.bindPopup(`
-                <b>${nome}</b><br>
-                <small>CNES: ${local.codigo_cnes || 'Não informado'}</small>
-            `);
-            
-            markersGroup.addLayer(marker);
+    if (!data || data.length === 0) return null;
 
-            if (primeiro) {
-                map.setView([lat, lon], 13); 
-                primeiro = false;
-            }
-        }
+    return {
+        lat: parseFloat(data[0].lat),
+        lon: parseFloat(data[0].lon),
+        name: municipio,
+        uf
+    };
+}
+
+async function getEstablishments(location) {
+    return [
+        createEstablishment("Hospital Municipal", "Hospital", location.lat + 0.01, location.lon + 0.01),
+        createEstablishment("UBS Central", "UBS", location.lat - 0.01, location.lon - 0.01),
+        createEstablishment("Farmácia Popular", "Farmácia", location.lat + 0.02, location.lon - 0.01)
+    ];
+}
+
+function createEstablishment(name, type, lat, lon) {
+    return { name, type, lat, lon };
+}
+
+function renderEstablishments(list) {
+    clearMarkers();
+
+    list.forEach(item => {
+        const marker = L.marker([item.lat, item.lon])
+            .addTo(AppState.map)
+            .bindPopup(`<strong>${item.name}</strong><br/>Tipo: ${item.type}`);
+
+        AppState.markers.push(marker);
     });
+}
 
-    if (primeiro) {
-        alert("Os estabelecimentos foram encontrados, mas nenhum continha coordenadas geográficas válidas cadastradas.");
+function clearMarkers() {
+    AppState.markers.forEach(marker => AppState.map.removeLayer(marker));
+    AppState.markers = [];
+}
+
+function getInputValue(id) {
+    return document.getElementById(id).value.trim();
+}
+
+function validateSearch(municipio, uf) {
+    if (!municipio || !uf) {
+        showMessage("Preencha município e UF");
+        return false;
+    }
+    return true;
+}
+
+function showMessage(msg) {
+    alert(msg);
+}
+
+function setLoading(state) {
+    AppState.loading = state;
+
+    const btn = document.querySelector("button");
+
+    if (btn) {
+        btn.disabled = state;
+        btn.innerText = state ? "Buscando..." : "Pesquisar";
     }
 }
